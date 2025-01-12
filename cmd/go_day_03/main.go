@@ -16,7 +16,6 @@ func main() {
 		log.Fatalf("Error creating the client: %s", err)
 	}
 
-	// scheme.json for struct index //
 	mapping :=
 		`
 	{
