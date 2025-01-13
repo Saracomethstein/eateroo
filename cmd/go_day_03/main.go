@@ -31,6 +31,8 @@ func main() {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
+	reader.Comma = '\t'
+	reader.LazyQuotes = true
 	records, err := reader.ReadAll()
 	if err != nil {
 		fmt.Printf("Ошибка при чтении CSV: %s\n", err)
