@@ -11,6 +11,9 @@ RUN make build
 
 FROM ubuntu:latest
 
-COPY --from=builder /app /app
+WORKDIR /app
 
-CMD ["/app/build/main"]
+COPY --from=builder /app/build/main /app/main
+COPY ./data/data.csv /app/data/data.csv
+
+CMD ["/app/main"]
