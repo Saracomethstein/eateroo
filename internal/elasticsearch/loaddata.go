@@ -110,6 +110,8 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 		restaurantJSON, _ := json.Marshal(restaurant)
 		buf.Write(restaurantJSON)
 		buf.WriteString("\n")
+
+		fmt.Printf("Restaurant ID: %s, Name: %s, Phone: %s, Location:%f\t%f\n", restaurant.ID, restaurant.Name, restaurant.Phone, restaurant.Longitude, restaurant.Latitude)
 	}
 
 	bulkReq := esapi.BulkRequest{
