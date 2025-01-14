@@ -15,14 +15,14 @@ import (
 )
 
 func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
-	exists, err := indexExists(es, "restaurants")
+	exists, err := indexExists(es, "places")
 	if err != nil {
 		return fmt.Errorf("error checking if index exists: %w", err)
 	}
 
 	if !exists {
 		createIndexReq := esapi.IndicesCreateRequest{
-			Index: "restaurants",
+			Index: "places",
 			Body: bytes.NewReader([]byte(`{
 				"mappings": {
 					"properties": {
@@ -103,7 +103,6 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 			Latitude:  latitude,
 		}
 
-		// for load most bigest data //
 		meta := fmt.Sprintf(`{ "index": { "_id": "%s" } }%s`, restaurant.ID, "\n")
 		buf.WriteString(meta)
 
@@ -115,7 +114,7 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 	}
 
 	bulkReq := esapi.BulkRequest{
-		Index:   "restaurants",
+		Index:   "places",
 		Body:    &buf,
 		Refresh: "true",
 	}
