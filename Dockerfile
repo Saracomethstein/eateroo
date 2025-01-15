@@ -15,5 +15,6 @@ WORKDIR /app
 
 COPY --from=builder /app/build/main /app/main
 COPY ./data/data.csv /app/data/data.csv
+COPY ./.env /app/.env
 
 CMD ["/app/main"]

@@ -22,36 +22,18 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 
 	if !exists {
 		createIndexReq := esapi.IndicesCreateRequest{
-			Index: "places",
+			Index: "restaurants",
 			Body: bytes.NewReader([]byte(`{
-				"mappings": {
-					"properties": {
-						"Name": { "type": "text" },
-						"Address": { "type": "text" },
-						"Phone": { "type": "keyword" },
-						"Longitude": { "type": "float" },
-						"Latitude": { "type": "float" }
-					}
-				}
-			}`)),
-		}
-
-		// next version //
-		/*
-			createIndexReq := esapi.IndicesCreateRequest{
-				Index: "restaurants",
-				Body: bytes.NewReader([]byte(`{
 					"mappings": {
 						"properties": {
 							"Name": { "type": "text" },
 							"Address": { "type": "text" },
 							"Phone": { "type": "keyword" },
-							"Location": { "type": geo_point}
+							"Location": { "type": "geo_point"}
 						}
 					}
 				}`)),
-			}
-		*/
+		}
 
 		res, err := createIndexReq.Do(context.Background(), es)
 		if err != nil {
@@ -95,22 +77,26 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 		}
 
 		restaurant := models.Restaurant{
-			ID:        record[0],
-			Name:      record[1],
-			Address:   record[2],
-			Phone:     record[3],
-			Longitude: longitude,
-			Latitude:  latitude,
+			ID:      record[0],
+			Name:    record[1],
+			Address: record[2],
+			Phone:   record[3],
+			Location: struct {
+				Longitude float64 `json: "Longitude"`
+				Latitude  float64 `json: "Latitude"`
+			}{
+				Longitude: longitude,
+				Latitude:  latitude,
+			},
 		}
 
 		meta := fmt.Sprintf(`{ "index": { "_id": "%s" } }%s`, restaurant.ID, "\n")
 		buf.WriteString(meta)
-
 		restaurantJSON, _ := json.Marshal(restaurant)
 		buf.Write(restaurantJSON)
 		buf.WriteString("\n")
 
-		fmt.Printf("Restaurant ID: %s, Name: %s, Phone: %s, Location:%f\t%f\n", restaurant.ID, restaurant.Name, restaurant.Phone, restaurant.Longitude, restaurant.Latitude)
+		fmt.Printf("Restaurant ID: %s, Name: %s, Phone: %s, Location:%f\t%f\n", restaurant.ID, restaurant.Name, restaurant.Phone, restaurant.Location.Longitude, restaurant.Location.Latitude)
 	}
 
 	bulkReq := esapi.BulkRequest{
