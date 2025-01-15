@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"go_day_03/internal/elasticsearch"
+	"log"
+	"os"
 
 	esearch "github.com/elastic/go-elasticsearch/v8"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -16,9 +19,21 @@ func main() {
 		return
 	}
 
-	// move to env file //
-	filePath := "data/data.csv"
-	if err := elasticsearch.LoadRestaurants(es, filePath); err != nil {
+	if err := elasticsearch.LoadRestaurants(es, getEnv()); err != nil {
 		fmt.Printf("Error loading restaurants: %s\n", err)
 	}
+}
+
+func getEnv() string {
+	if err := godotenv.Load("/app/.env"); err != nil {
+		log.Println("Error: ", err)
+	}
+
+	sourceSCV := os.Getenv("DATA_SOURCE")
+
+	if sourceSCV == "" {
+		log.Fatal("DATA_SOURCE environment variable are missing.")
+	}
+
+	return sourceSCV
 }
