@@ -26,6 +26,8 @@ services:
         condition: service_healthy
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
+    ports:
+      - "8888:8888"
     volumes:
       - ./data:/app/data
 
