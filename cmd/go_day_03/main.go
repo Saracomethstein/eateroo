@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"go_day_03/internal/elasticsearch"
+	"go_day_03/internal/handlers"
 	"log"
-	"net/http"
 	"os"
 
 	esearch "github.com/elastic/go-elasticsearch/v8"
@@ -20,9 +20,8 @@ func main() {
 	e.Use(middleware.Recover())
 
 	// ping server //
-	e.GET("/ping", func(c echo.Context) error {
-		return c.String(http.StatusOK, "ok\n")
-	})
+	e.GET("/ping", handlers.Ping)
+	e.GET("/place", handlers.GetPlace)
 
 	es, err := esearch.NewClient(esearch.Config{
 		Addresses: []string{"http://elasticsearch:9200"},
