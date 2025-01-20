@@ -22,27 +22,8 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 	}
 
 	if !exists {
-		createIndexReq := esapi.IndicesCreateRequest{
-			Index: "places",
-			Body: bytes.NewReader([]byte(`{
-					"mappings": {
-						"properties": {
-							"Name": { "type": "text" },
-							"Address": { "type": "text" },
-							"Phone": { "type": "keyword" },
-							"Location": { "type": "geo_point"}
-						}
-					}
-				}`)),
-		}
-
-		res, err := createIndexReq.Do(context.Background(), es)
-		if err != nil {
-			return fmt.Errorf("error creating index: %w", err)
-		}
-		defer res.Body.Close()
-		if res.IsError() {
-			return fmt.Errorf("error creating index: %s", res.String())
+		if err := createIndex(es, "places"); err != nil {
+			return err
 		}
 	}
 
@@ -68,12 +49,12 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 	for i, record := range records[1:] {
 		longitude, err := strconv.ParseFloat(record[4], 64)
 		if err != nil {
-			fmt.Printf("Error parsing longitude on row %d: %s\n", i+2, err)
+			log.Printf("Error parsing longitude on row %d: %s", i+2, err)
 			continue
 		}
 		latitude, err := strconv.ParseFloat(record[5], 64)
 		if err != nil {
-			fmt.Printf("Error parsing latitude on row %d: %s\n", i+2, err)
+			log.Printf("Error parsing latitude on row %d: %s", i+2, err)
 			continue
 		}
 
@@ -96,8 +77,6 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 		restaurantJSON, _ := json.Marshal(restaurant)
 		buf.Write(restaurantJSON)
 		buf.WriteString("\n")
-
-		fmt.Printf("Restaurant ID: %s, Name: %s, Phone: %s, Location:%f\t%f\n", restaurant.ID, restaurant.Name, restaurant.Phone, restaurant.Location.Longitude, restaurant.Location.Latitude)
 	}
 
 	bulkReq := esapi.BulkRequest{
@@ -131,16 +110,59 @@ func indexExists(es *elasticsearch.Client, indexName string) (bool, error) {
 	return res.StatusCode == 200, nil
 }
 
-func FetchRestaurants(client *elasticsearch.Client, index string, page, limit int) ([]models.Restaurant, int, error) {
+func createIndex(es *elasticsearch.Client, indexName string) error {
+	createIndexReq := esapi.IndicesCreateRequest{
+		Index: indexName,
+		Body: bytes.NewReader([]byte(`{
+					"mappings": {
+						"properties": {
+							"Name": { "type": "text" },
+							"Address": { "type": "text" },
+							"Phone": { "type": "keyword" },
+							"Location": { "type": "geo_point"}
+						}
+					}
+				}`)),
+	}
+
+	res, err := createIndexReq.Do(context.Background(), es)
+	if err != nil {
+		return fmt.Errorf("error creating index: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		return fmt.Errorf("error creating index: %s", res.String())
+	}
+	return nil
+}
+
+func FetchRestaurants(client *elasticsearch.Client, index string, page, limit int, searchQuery string) ([]models.Restaurant, int, error) {
 	from := (page - 1) * limit
 
-	// Elasticsearch запрос
 	query := map[string]interface{}{
 		"from": from,
 		"size": limit,
 		"query": map[string]interface{}{
-			"match_all": map[string]interface{}{},
+			"bool": map[string]interface{}{
+				"must": []map[string]interface{}{
+					{
+						"match_all": map[string]interface{}{},
+					},
+				},
+			},
 		},
+	}
+
+	if searchQuery != "" {
+		query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"] = append(
+			query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"].([]map[string]interface{}),
+			map[string]interface{}{
+				"match": map[string]interface{}{
+					"Name": searchQuery,
+				},
+			},
+		)
 	}
 
 	var buf bytes.Buffer
@@ -148,7 +170,6 @@ func FetchRestaurants(client *elasticsearch.Client, index string, page, limit in
 		return nil, 0, fmt.Errorf("error encoding query: %w", err)
 	}
 
-	// Выполнение запроса к Elasticsearch
 	res, err := client.Search(
 		client.Search.WithContext(context.Background()),
 		client.Search.WithIndex(index),

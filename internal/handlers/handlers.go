@@ -17,6 +17,7 @@ func Ping(c echo.Context) error {
 func GetPlace(c echo.Context) error {
 	pageParam := c.QueryParam("page")
 	limitParam := c.QueryParam("limit")
+	searchQuery := c.QueryParam("search")
 
 	page, err := strconv.Atoi(pageParam)
 	if err != nil || page < 1 {
@@ -35,9 +36,8 @@ func GetPlace(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create Elasticsearch client"})
 	}
 
-	// Получение данных из Elasticsearch
 	index := "places"
-	restaurants, total, err := elasticsearch.FetchRestaurants(es, index, page, limit)
+	restaurants, total, err := elasticsearch.FetchRestaurants(es, index, page, limit, searchQuery)
 	if err != nil {
 		log.Printf("error fetching restaurants: %v", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch restaurants"})
