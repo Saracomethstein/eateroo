@@ -19,9 +19,8 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	// ping server //
-	e.GET("/ping", handlers.Ping)
-	e.GET("/place", handlers.GetPlace)
+	e.GET("/api/ping", handlers.Ping)
+	e.GET("/api/place", handlers.GetPlace)
 
 	es, err := esearch.NewClient(esearch.Config{
 		Addresses: []string{"http://elasticsearch:9200"},

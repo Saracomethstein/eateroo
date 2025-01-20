@@ -74,7 +74,7 @@
             const itemsPerPage = document.getElementById('itemsPerPage').value;
             const searchQuery = document.getElementById('search').value;
 
-            const response = await fetch(`/place?page=${page}&limit=${itemsPerPage}&search=${searchQuery}`);
+            const response = await fetch(`/api/place?page=${page}&limit=${itemsPerPage}&search=${searchQuery}`);
             const data = await response.json();
 
             renderRestaurants(data.restaurants);
@@ -115,7 +115,7 @@
         async function findNearby() {
             const latitude = prompt('Enter your latitude:');
             const longitude = prompt('Enter your longitude:');
-            const response = await fetch(`/place/nearby?lat=${latitude}&lon=${longitude}`);
+            const response = await fetch(`/api/place/nearby?lat=${latitude}&lon=${longitude}`);
             const data = await response.json();
 
             renderRestaurants(data.restaurants);
