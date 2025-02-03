@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go_day_03/internal/models"
+	"go_day_03/internal/repositories"
 	"log"
 	"os"
 	"strconv"
@@ -16,13 +17,14 @@ import (
 )
 
 func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
-	exists, err := indexExists(es, "places")
+	config := repositories.New()
+	exists, err := indexExists(es, config.ESearchIndex)
 	if err != nil {
 		return fmt.Errorf("error checking if index exists: %w", err)
 	}
 
 	if !exists {
-		if err := createIndex(es, "places"); err != nil {
+		if err := createPlaceIndex(es); err != nil {
 			return err
 		}
 	}
@@ -80,7 +82,7 @@ func LoadRestaurants(es *elasticsearch.Client, filePath string) error {
 	}
 
 	bulkReq := esapi.BulkRequest{
-		Index:   "places",
+		Index:   config.ESearchIndex,
 		Body:    &buf,
 		Refresh: "true",
 	}
@@ -110,9 +112,10 @@ func indexExists(es *elasticsearch.Client, indexName string) (bool, error) {
 	return res.StatusCode == 200, nil
 }
 
-func createIndex(es *elasticsearch.Client, indexName string) error {
+func createPlaceIndex(es *elasticsearch.Client) error {
+	config := repositories.New()
 	createIndexReq := esapi.IndicesCreateRequest{
-		Index: indexName,
+		Index: config.ESearchIndex,
 		Body: bytes.NewReader([]byte(`{
 					"mappings": {
 						"properties": {
@@ -137,7 +140,8 @@ func createIndex(es *elasticsearch.Client, indexName string) error {
 	return nil
 }
 
-func FetchRestaurants(client *elasticsearch.Client, index string, page, limit int, searchQuery string) ([]models.Restaurant, int, error) {
+func FetchRestaurants(client *elasticsearch.Client, page, limit int, searchQuery string) ([]models.Restaurant, int, error) {
+	config := repositories.New()
 	from := (page - 1) * limit
 
 	query := map[string]interface{}{
@@ -172,7 +176,7 @@ func FetchRestaurants(client *elasticsearch.Client, index string, page, limit in
 
 	res, err := client.Search(
 		client.Search.WithContext(context.Background()),
-		client.Search.WithIndex(index),
+		client.Search.WithIndex(config.ESearchIndex),
 		client.Search.WithBody(&buf),
 		client.Search.WithTrackTotalHits(true),
 	)

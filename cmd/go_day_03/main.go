@@ -4,49 +4,38 @@ import (
 	"fmt"
 	"go_day_03/internal/elasticsearch"
 	"go_day_03/internal/handlers"
-	"log"
-	"os"
+	"go_day_03/internal/repositories"
 
 	esearch "github.com/elastic/go-elasticsearch/v8"
-	"github.com/joho/godotenv"
 	echo "github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
 	e := echo.New()
-
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.GET("/api/ping", handlers.Ping)
-	e.GET("/api/place", handlers.GetPlace)
+	Load()
 
+	e.GET("/api/ping", handlers.Ping)
+	e.GET("/api/places", handlers.GetPlace)
+
+	e.Logger.Fatal(e.Start(":8888"))
+}
+
+func Load() {
+	config := repositories.New()
 	es, err := esearch.NewClient(esearch.Config{
-		Addresses: []string{"http://elasticsearch:9200"},
+		Addresses: []string{config.ESearchURL},
 	})
+
 	if err != nil {
 		fmt.Printf("Error connecting to Elasticsearch: %s\n", err)
 		return
 	}
 
-	if err := elasticsearch.LoadRestaurants(es, getEnv()); err != nil {
+	if err := elasticsearch.LoadRestaurants(es, config.DataCSV); err != nil {
 		fmt.Printf("Error loading restaurants: %s\n", err)
 	}
-
-	e.Logger.Fatal(e.Start(":8888"))
-}
-
-func getEnv() string {
-	if err := godotenv.Load("/app/.env"); err != nil {
-		log.Println("Error: ", err)
-	}
-
-	sourceSCV := os.Getenv("DATA_SOURCE")
-
-	if sourceSCV == "" {
-		log.Fatal("DATA_SOURCE environment variable are missing.")
-	}
-
-	return sourceSCV
 }

@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"go_day_03/internal/elasticsearch"
-	"log"
+	"go_day_03/internal/service"
 	"net/http"
 	"strconv"
 
-	esearch "github.com/elastic/go-elasticsearch/v8"
 	"github.com/labstack/echo/v4"
 )
 
@@ -29,18 +27,10 @@ func GetPlace(c echo.Context) error {
 		limit = 30
 	}
 
-	es, err := esearch.NewClient(esearch.Config{
-		Addresses: []string{"http://elasticsearch:9200"},
-	})
+	restaurants, total, err := service.GetPlace(page, limit, searchQuery)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create Elasticsearch client"})
-	}
+		return c.JSON(http.StatusInternalServerError, map[string]error{"error": err})
 
-	index := "places"
-	restaurants, total, err := elasticsearch.FetchRestaurants(es, index, page, limit, searchQuery)
-	if err != nil {
-		log.Printf("error fetching restaurants: %v", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch restaurants"})
 	}
 
 	response := map[string]interface{}{
